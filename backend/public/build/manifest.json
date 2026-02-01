@@ -1,0 +1,33 @@
+{
+  "_jsx-runtime-BgjmLhhW.js": {
+    "file": "assets/jsx-runtime-BgjmLhhW.js",
+    "name": "jsx-runtime"
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-Du4N1v_R.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/js/app.tsx": {
+    "file": "assets/app-yYaw8c_6.js",
+    "name": "app",
+    "src": "resources/js/app.tsx",
+    "isEntry": true,
+    "imports": [
+      "_jsx-runtime-BgjmLhhW.js"
+    ]
+  },
+  "resources/js/landing.tsx": {
+    "file": "assets/landing-VAOIvSv7.js",
+    "name": "landing",
+    "src": "resources/js/landing.tsx",
+    "isEntry": true,
+    "imports": [
+      "_jsx-runtime-BgjmLhhW.js"
+    ]
+  }
+}

@@ -1,0 +1,1 @@
+{"version":"pest_4.2.0","defects":{"P\\Tests\\Feature\\Auth\\RegistrationTest::__pest_evaluable_new_users_can_register":7},"times":{"P\\Tests\\Feature\\Auth\\RegistrationTest::__pest_evaluable_registration_screen_can_be_rendered":0.109,"P\\Tests\\Feature\\Auth\\RegistrationTest::__pest_evaluable_new_users_can_register":0.102}}
