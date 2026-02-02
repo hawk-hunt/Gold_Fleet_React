@@ -20,7 +20,7 @@ class MapDashboardController extends Controller
             $latestLocations = VehicleLocation::whereHas('vehicle', function($query) use ($companyId) {
                 $query->where('company_id', $companyId)->where('status', 'active');
             })
-            ->select('id', 'vehicle_id', 'latitude', 'longitude', 'speed', 'recorded_at', 'alert_status')
+            ->select('id', 'vehicle_id', 'latitude', 'longitude', 'speed', 'recorded_at')
             ->with(['vehicle:id,make,model,license_plate,status'])
             ->orderByRaw('vehicle_id, recorded_at DESC')
             ->get()
@@ -46,7 +46,7 @@ class MapDashboardController extends Controller
             return VehicleLocation::whereHas('vehicle', function($query) use ($companyId) {
                 $query->where('company_id', $companyId)->where('status', 'active');
             })
-            ->select('id', 'vehicle_id', 'latitude', 'longitude', 'speed', 'recorded_at', 'alert_status')
+            ->select('id', 'vehicle_id', 'latitude', 'longitude', 'speed', 'recorded_at')
             ->with(['vehicle:id,make,model,license_plate,status'])
             ->orderByRaw('vehicle_id, recorded_at DESC')
             ->get()

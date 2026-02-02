@@ -24,39 +24,39 @@ class InfoDashboardController extends Controller
         $stats = Cache::remember($cacheKey, 300, function() use ($companyId) {
             // Get all KPIs in optimized queries using aggregations
             $vehicleStats = Vehicle::where('company_id', $companyId)
-                ->selectRaw('COUNT(*) as total, SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active')
+                ->selectRaw("COUNT(*) as total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active")
                 ->first();
 
             $driverStats = Driver::where('company_id', $companyId)
-                ->selectRaw('COUNT(*) as total, SUM(CASE WHEN status = "active" THEN 1 ELSE 0 END) as active')
+                ->selectRaw("COUNT(*) as total, SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active")
                 ->first();
 
             $tripStats = Trip::where('company_id', $companyId)
-                ->selectRaw('COUNT(*) as total, SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed')
+                ->selectRaw("COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed")
                 ->first();
 
             // Monthly aggregates - using database-agnostic method
             $monthlyTrips = Trip::where('company_id', $companyId)
-                ->selectRaw('strftime("%m", created_at) as month, COUNT(*) as count')
+                ->selectRaw('EXTRACT(MONTH FROM created_at)::TEXT as month, COUNT(*) as count')
                 ->whereYear('created_at', date('Y'))
-                ->groupBy('month')
-                ->orderBy('month')
+                ->groupBy(DB::raw('EXTRACT(MONTH FROM created_at)'))
+                ->orderBy(DB::raw('EXTRACT(MONTH FROM created_at)'))
                 ->pluck('count', 'month')
                 ->toArray();
 
             $monthlyExpenses = Expense::where('company_id', $companyId)
-                ->selectRaw('strftime("%m", expense_date) as month, SUM(amount) as total')
+                ->selectRaw('EXTRACT(MONTH FROM expense_date)::TEXT as month, SUM(amount) as total')
                 ->whereYear('expense_date', date('Y'))
-                ->groupBy('month')
-                ->orderBy('month')
+                ->groupBy(DB::raw('EXTRACT(MONTH FROM expense_date)'))
+                ->orderBy(DB::raw('EXTRACT(MONTH FROM expense_date)'))
                 ->pluck('total', 'month')
                 ->toArray();
 
             $monthlyFuelCosts = FuelFillup::where('company_id', $companyId)
-                ->selectRaw('strftime("%m", fillup_date) as month, SUM(cost) as total')
+                ->selectRaw('EXTRACT(MONTH FROM fillup_date)::TEXT as month, SUM(cost) as total')
                 ->whereYear('fillup_date', date('Y'))
-                ->groupBy('month')
-                ->orderBy('month')
+                ->groupBy(DB::raw('EXTRACT(MONTH FROM fillup_date)'))
+                ->orderBy(DB::raw('EXTRACT(MONTH FROM fillup_date)'))
                 ->pluck('total', 'month')
                 ->toArray();
 
@@ -109,40 +109,20 @@ class InfoDashboardController extends Controller
     public function getChartData(Request $request)
     {
         $companyId = auth()->user()->company_id;
-        $period = $request->get('period', 'monthly');
-        $year = $request->get('year', date('Y'));
+        $cacheKey = "chart_data_{$companyId}";
+        
+        // Cache chart data for 10 minutes to reduce query load
+        $data = Cache::remember($cacheKey, 600, function() use ($companyId) {
+            $data['expenses'] = Expense::where('company_id', $companyId)
+                ->selectRaw('EXTRACT(MONTH FROM expense_date)::TEXT as period, SUM(amount) as value')
+                ->whereYear('expense_date', date('Y'))
+                ->groupBy(DB::raw('EXTRACT(MONTH FROM expense_date)'))
+                ->orderBy(DB::raw('EXTRACT(MONTH FROM expense_date)'))
+                ->pluck('value', 'period')
+                ->toArray();
 
-        $data = [];
-
-        switch ($period) {
-            case 'monthly':
-                $data['trips'] = Trip::where('company_id', $companyId)
-                    ->selectRaw('strftime("%m", created_at) as period, COUNT(*) as value')
-                    ->whereYear('created_at', $year)
-                    ->groupBy('period')
-                    ->orderBy('period')
-                    ->pluck('value', 'period')
-                    ->toArray();
-
-                $data['expenses'] = Expense::where('company_id', $companyId)
-                    ->selectRaw('strftime("%m", expense_date) as period, SUM(amount) as value')
-                    ->whereYear('expense_date', $year)
-                    ->groupBy('period')
-                    ->orderBy('period')
-                    ->pluck('value', 'period')
-                    ->toArray();
-                break;
-
-            case 'weekly':
-                $data['trips'] = Trip::where('company_id', $companyId)
-                    ->selectRaw('strftime("%W", created_at) as period, COUNT(*) as value')
-                    ->whereYear('created_at', $year)
-                    ->groupBy('period')
-                    ->orderBy('period')
-                    ->pluck('value', 'period')
-                    ->toArray();
-                break;
-        }
+            return $data;
+        });
 
         return response()->json($data);
     }

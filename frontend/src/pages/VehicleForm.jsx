@@ -81,7 +81,7 @@ export default function VehicleForm() {
 
       navigate('/vehicles');
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message || 'Failed to save vehicle');
     } finally {
       setLoading(false);
     }

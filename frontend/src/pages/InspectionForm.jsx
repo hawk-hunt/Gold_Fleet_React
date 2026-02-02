@@ -61,7 +61,7 @@ export default function InspectionForm() {
       }
       navigate('/inspections');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save inspection');
+      setError(err.response?.data?.message || err.message || 'Failed to save inspection');
     } finally {
       setLoading(false);
     }

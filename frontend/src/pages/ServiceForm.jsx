@@ -62,7 +62,7 @@ export default function ServiceForm() {
       }
       navigate('/services');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save service');
+      setError(err.response?.data?.message || err.message || 'Failed to save service');
     } finally {
       setLoading(false);
     }

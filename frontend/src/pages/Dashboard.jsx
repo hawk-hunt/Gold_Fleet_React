@@ -2,8 +2,34 @@ import { useEffect, useState } from 'react';
 import ChartComponent from '../components/ChartComponent';
 import { api } from '../services/api';
 
+// Skeleton Loader Component
+function SkeletonLoader() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      {/* KPI Cards Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="bg-gray-200 rounded-lg h-24"></div>
+        ))}
+      </div>
+      {/* Stats Cards Skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {[1,2,3,4].map(i => (
+          <div key={i} className="bg-gray-200 rounded-lg h-20"></div>
+        ))}
+      </div>
+      {/* Chart Skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-gray-200 rounded-lg h-96"></div>
+        <div className="bg-gray-200 rounded-lg h-96"></div>
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [expenses, setExpenses] = useState({ labels: [], values: [] });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
@@ -16,11 +42,17 @@ export default function Dashboard() {
         setExpenses({ labels: months, values: vals });
       } catch (err) {
         console.error('Failed to load dashboard chart data', err);
+      } finally {
+        if (mounted) setLoading(false);
       }
     };
     load();
     return () => { mounted = false; };
   }, []);
+
+  if (loading) {
+    return <SkeletonLoader />;
+  }
 
   return (
     <div className="space-y-6">

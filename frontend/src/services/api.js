@@ -15,17 +15,50 @@ const apiCall = async (url, options = {}) => {
     headers['Content-Type'] = 'application/json';
   }
   
-  const response = await fetch(url, { ...options, headers });
-  
-  if (!response.ok) {
-    throw new Error(`API error: ${response.statusText}`);
+  try {
+    const response = await fetch(url, { ...options, headers });
+    
+    // Try to parse JSON response for better error messages
+    let responseData = null;
+    try {
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        responseData = await response.json();
+      }
+    } catch (e) {
+      console.log('Could not parse response as JSON');
+    }
+    
+    if (!response.ok) {
+      // Use error from response if available
+      let errorMessage = responseData?.error || responseData?.message || response.statusText;
+      
+      // If validation errors exist, format them
+      if (responseData?.errors) {
+        const errors = Object.values(responseData.errors).flat();
+        errorMessage = errors.join(', ');
+      }
+      
+      console.error(`API error [${response.status}]:`, errorMessage);
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      error.data = responseData;
+      throw error;
+    }
+    
+    if (response.status === 204) {
+      return { success: true };
+    }
+    
+    return responseData || { success: true };
+  } catch (error) {
+    if (error instanceof TypeError) {
+      // Network error
+      console.error('Network error:', error.message);
+      throw new Error('Network error - Backend may be unavailable. Make sure Laravel server is running on http://localhost:8000');
+    }
+    throw error;
   }
-  
-  if (response.status === 204) {
-    return { success: true };
-  }
-  
-  return response.json();
 };
 
 export const api = {

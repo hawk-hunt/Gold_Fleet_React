@@ -95,7 +95,7 @@ export default function MapDashboard() {
   const activeVehicles = locations.filter(l => l.vehicle?.status === 'active').length;
   const stoppedVehicles = locations.filter(l => !l.speed || l.speed === 0).length;
   const movingVehicles = locations.filter(l => l.speed && l.speed > 0).length;
-  const alertVehicles = locations.filter(l => l.alert_status).length;
+  const alertVehicles = 0; // Alert status not yet implemented
 
   if (loading) {
     return <SkeletonLoader />;
@@ -162,7 +162,7 @@ export default function MapDashboard() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
             {locations.map((loc) => {
-              const status = loc.speed && loc.speed > 0 ? 'moving' : loc.alert_status ? 'alert' : 'stopped';
+              const status = loc.speed && loc.speed > 0 ? 'moving' : 'stopped';
               return (
                 <Marker 
                   key={loc.id} 

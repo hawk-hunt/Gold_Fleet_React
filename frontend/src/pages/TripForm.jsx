@@ -68,7 +68,7 @@ export default function TripForm() {
       }
       navigate('/trips');
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save trip');
+      setError(err.response?.data?.message || err.message || 'Failed to save trip');
     } finally {
       setLoading(false);
     }
