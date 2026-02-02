@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -38,6 +39,23 @@ import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
 import './App.css';
 
+// Debug page to clear auth
+function LogoutPage() {
+  React.useEffect(() => {
+    localStorage.removeItem('auth_token')
+    sessionStorage.clear()
+    window.location.href = '/login'
+  }, [])
+  return (
+    <div className="flex items-center justify-center h-screen bg-gray-100">
+      <div className="text-center">
+        <p className="text-gray-700 mb-4">Clearing authentication...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto"></div>
+      </div>
+    </div>
+  )
+}
+
 function AppRoutes() {
   const ProtectedLayout = ({ children }) => (
     <ProtectedRoute>
@@ -52,6 +70,7 @@ function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<AuthPage />} />
       <Route path="/signup" element={<AuthPage />} />
+      <Route path="/logout" element={<LogoutPage />} />
       
       {/* Dashboard */}
       <Route path="/dashboard" element={<ProtectedLayout><Dashboard /></ProtectedLayout>} />

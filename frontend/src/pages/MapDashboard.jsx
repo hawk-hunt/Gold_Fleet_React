@@ -44,6 +44,8 @@ export default function MapDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [simulating, setSimulating] = useState(false);
+  const [simulationActive, setSimulationActive] = useState(false);
+  const [updateInterval, setUpdateInterval] = useState(null);
 
   const loadLocations = async () => {
     setLoading(true);
@@ -80,15 +82,85 @@ export default function MapDashboard() {
     }
   };
 
+  // Start continuous simulation
+  const startContinuousSimulation = async () => {
+    setSimulating(true);
+    try {
+      const response = await api.startSimulation(5);
+      if (response.success) {
+        setSimulationActive(true);
+        
+        // Poll for updates every 5 seconds
+        const interval = setInterval(async () => {
+          try {
+            await api.updateSimulation();
+            await loadLocations();
+          } catch (err) {
+            console.error('Failed to update simulation', err);
+          }
+        }, 5000);
+
+        setUpdateInterval(interval);
+      } else {
+        setError(response.message || 'Failed to start simulation');
+      }
+    } catch (err) {
+      console.error('Failed to start simulation', err);
+      setError('Failed to start simulation: ' + err.message);
+    } finally {
+      setSimulating(false);
+    }
+  };
+
+  // Stop continuous simulation
+  const stopContinuousSimulation = async () => {
+    setSimulating(true);
+    try {
+      if (updateInterval) {
+        clearInterval(updateInterval);
+        setUpdateInterval(null);
+      }
+
+      await api.stopSimulation();
+      setSimulationActive(false);
+      await loadLocations();
+    } catch (err) {
+      console.error('Failed to stop simulation', err);
+      setError('Failed to stop simulation: ' + err.message);
+    } finally {
+      setSimulating(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
     loadLocations();
+
+    // Check simulation status on mount
+    api.getSimulationStatus()
+      .then(status => {
+        if (status.active) {
+          setSimulationActive(true);
+          // Start polling if simulation is active
+          const interval = setInterval(async () => {
+            try {
+              await api.updateSimulation();
+              await loadLocations();
+            } catch (err) {
+              console.error('Failed to update simulation', err);
+            }
+          }, 5000);
+          setUpdateInterval(interval);
+        }
+      })
+      .catch(err => console.error('Failed to check simulation status', err));
 
     // Auto-refresh every 30 seconds for real-time updates
     const interval = setInterval(loadLocations, 30000);
     return () => { 
       mounted = false;
       clearInterval(interval);
+      if (updateInterval) clearInterval(updateInterval);
     };
   }, []);
 
@@ -111,6 +183,21 @@ export default function MapDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Simulation Status */}
+      {simulationActive && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+          <div className="flex-shrink-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100">
+              <div className="h-3 w-3 bg-green-600 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-medium text-green-900">Simulation Active</p>
+            <p className="text-xs text-green-700">All vehicles are moving continuously. Updates every 5 seconds.</p>
+          </div>
+        </div>
+      )}
+
       {/* Vehicle Status KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white rounded-lg shadow p-4 border-l-4 border-blue-500">
@@ -140,16 +227,37 @@ export default function MapDashboard() {
 
       {/* Map Area */}
       <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-4">
+        <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
           <h2 className="text-lg font-semibold text-gray-900">Vehicle Tracking Map</h2>
-          <button
-            onClick={simulatePhoneTrackerUpdate}
-            disabled={simulating || locations.length === 0}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors text-sm font-medium"
-            title="Simulate phone tracker GPS update"
-          >
-            {simulating ? '📍 Updating...' : '📍 Simulate Tracker Update'}
-          </button>
+          <div className="flex gap-2">
+            {simulationActive ? (
+              <button
+                onClick={stopContinuousSimulation}
+                disabled={simulating || locations.length === 0}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:bg-gray-400 transition-colors text-sm font-medium"
+                title="Stop continuous simulation"
+              >
+                {simulating ? '⏹️ Stopping...' : '⏹️ Stop Simulation'}
+              </button>
+            ) : (
+              <button
+                onClick={startContinuousSimulation}
+                disabled={simulating || locations.length === 0}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition-colors text-sm font-medium"
+                title="Start continuous vehicle movement simulation"
+              >
+                {simulating ? '▶️ Starting...' : '▶️ Start Simulation'}
+              </button>
+            )}
+            <button
+              onClick={simulatePhoneTrackerUpdate}
+              disabled={simulating || locations.length === 0}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition-colors text-sm font-medium"
+              title="Simulate one phone tracker GPS update"
+            >
+              {simulating ? '📍 Updating...' : '📍 Single Update'}
+            </button>
+          </div>
         </div>
         {locations.length > 0 ? (
           <MapContainer 

@@ -3,9 +3,10 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 const ProtectedRoute = ({ children }) => {
-  const { token, loading } = useAuth()
+  const { token, loading, isInitialized } = useAuth()
 
-  if (loading) {
+  // Wait for auth to fully initialize
+  if (loading || !isInitialized) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -16,10 +17,12 @@ const ProtectedRoute = ({ children }) => {
     )
   }
 
+  // If no token, redirect to login (not authenticated)
   if (!token) {
     return <Navigate to="/login" replace />
   }
 
+  // User is authenticated, render children
   return children
 }
 

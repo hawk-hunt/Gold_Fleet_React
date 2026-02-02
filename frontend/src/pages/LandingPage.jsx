@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import Hero from '../components/Hero';
 
 /**
@@ -7,6 +9,35 @@ import Hero from '../components/Hero';
  * Clean, professional design with white background and strong typography
  */
 const LandingPage = () => {
+  const navigate = useNavigate();
+  const { token, loading, isInitialized } = useAuth();
+
+  // Log auth state for debugging
+  useEffect(() => {
+    console.log('[LandingPage] Auth state:', { token, loading, isInitialized });
+  }, [token, loading, isInitialized]);
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (isInitialized && !loading && token) {
+      console.log('[LandingPage] User is authenticated, redirecting to dashboard...');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [token, loading, isInitialized, navigate]);
+
+  // Show loading while auth is initializing
+  if (loading || !isInitialized) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // User is NOT authenticated, show landing page
   return (
     <div className="w-full">
       <Hero />

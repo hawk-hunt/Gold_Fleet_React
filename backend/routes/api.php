@@ -18,6 +18,7 @@ use App\Http\Controllers\ReminderController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\PhoneTrackerController;
+use App\Http\Controllers\SimulationController;
 
 // API routes for frontend consumption. These return JSON and are prefixed with /api by the framework.
 
@@ -39,6 +40,12 @@ Route::middleware('authorize.api.token')->group(function () {
     Route::post('/tracker/update-location', [PhoneTrackerController::class, 'updateLocation']);
     Route::get('/tracker/last-location/{vehicleId}', [PhoneTrackerController::class, 'getLastLocation']);
     Route::post('/tracker/simulate/{vehicleId}', [PhoneTrackerController::class, 'simulateTrackerUpdate']);
+
+    // Vehicle Simulation
+    Route::post('/simulation/start', [SimulationController::class, 'start']);
+    Route::post('/simulation/stop', [SimulationController::class, 'stop']);
+    Route::get('/simulation/status', [SimulationController::class, 'status']);
+    Route::post('/simulation/update', [SimulationController::class, 'update']);
 
     // Resource endpoints
     Route::apiResource('vehicles', VehicleController::class);

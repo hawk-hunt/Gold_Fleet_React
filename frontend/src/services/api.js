@@ -147,6 +147,12 @@ export const api = {
   getLastTrackerLocation: (vehicleId) => apiCall(`${API_BASE_URL}/tracker/last-location/${vehicleId}`),
   simulateTrackerUpdate: (vehicleId) => apiCall(`${API_BASE_URL}/tracker/simulate/${vehicleId}`, { method: 'POST' }),
 
+  // Vehicle Simulation
+  startSimulation: (interval = 5) => apiCall(`${API_BASE_URL}/simulation/start`, { method: 'POST', body: JSON.stringify({ interval }) }),
+  stopSimulation: () => apiCall(`${API_BASE_URL}/simulation/stop`, { method: 'POST' }),
+  getSimulationStatus: () => apiCall(`${API_BASE_URL}/simulation/status`),
+  updateSimulation: () => apiCall(`${API_BASE_URL}/simulation/update`, { method: 'POST' }),
+
   // Notifications
   getNotifications: () => apiCall(`${API_BASE_URL}/notifications`),
   markNotificationAsRead: (id) => apiCall(`${API_BASE_URL}/notifications/${id}/read`, { method: 'PATCH' }),

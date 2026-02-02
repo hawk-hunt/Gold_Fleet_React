@@ -6,20 +6,79 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null)
   const [token, setToken] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // Initialize auth from localStorage
+  // Initialize auth from localStorage - validate token with backend
   useEffect(() => {
     const initAuth = async () => {
-      const savedToken = localStorage.getItem('auth_token')
-      if (savedToken) {
-        setToken(savedToken)
-        await fetchUser(savedToken)
-      } else {
+      setLoading(true)
+      try {
+        const savedToken = localStorage.getItem('auth_token')
+        console.log('[Auth] App initialized. Checking localStorage for token...')
+        console.log('[Auth] Token exists:', !!savedToken)
+        
+        // If no token exists, user is unauthenticated
+        if (!savedToken) {
+          console.log('[Auth] ✓ No token - user must login')
+          setToken(null)
+          setUser(null)
+          setLoading(false)
+          setIsInitialized(true)
+          return
+        }
+
+        // Token exists in localStorage, validate it with backend
+        console.log('[Auth] Token found in localStorage. Validating with API...')
+        await validateToken(savedToken)
+      } catch (error) {
+        console.error('[Auth] ✗ Initialization error:', error.message)
+        localStorage.removeItem('auth_token')
+        setToken(null)
+        setUser(null)
+      } finally {
         setLoading(false)
+        setIsInitialized(true)
       }
     }
+
     initAuth()
   }, [])
+
+  const validateToken = async (authToken) => {
+    try {
+      console.log('[Auth] Validating token with backend at http://localhost:8000/api/user...')
+      const response = await fetch('http://localhost:8000/api/user', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+      })
+
+      console.log('[Auth] Validation response status:', response.status)
+
+      if (response.ok) {
+        const data = await response.json()
+        console.log('[Auth] ✓ Token is valid! User data:', data)
+        setUser(data.user || data)
+        setToken(authToken)
+      } else {
+        // Token is invalid, clear it
+        console.log('[Auth] ✗ Token validation failed with status', response.status)
+        const errorText = await response.text().catch(() => '')
+        console.log('[Auth] Response:', errorText)
+        localStorage.removeItem('auth_token')
+        setToken(null)
+        setUser(null)
+      }
+    } catch (error) {
+      console.error('[Auth] ✗ Token validation error:', error.message)
+      localStorage.removeItem('auth_token')
+      setToken(null)
+      setUser(null)
+    }
+  }
 
   const fetchUser = async (authToken) => {
     try {
@@ -72,14 +131,24 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || 'Login failed')
       }
 
-      setToken(data.token)
-      setUser(data.user)
-      localStorage.setItem('auth_token', data.token)
-      setLoading(false)
+      // Only set token if we have valid data
+      if (data.token) {
+        setToken(data.token)
+        setUser(data.user || null)
+        localStorage.setItem('auth_token', data.token)
+      } else {
+        throw new Error('No token received from server')
+      }
+
       return data
     } catch (error) {
-      setLoading(false)
+      // Ensure failed login doesn't leave any auth state
+      setToken(null)
+      setUser(null)
+      localStorage.removeItem('auth_token')
       throw error
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -106,29 +175,42 @@ export const AuthProvider = ({ children }) => {
         throw new Error(data.message || 'Signup failed')
       }
 
-      setToken(data.token)
-      setUser(data.user)
-      localStorage.setItem('auth_token', data.token)
-      setLoading(false)
+      // Only set token if we have valid data
+      if (data.token) {
+        setToken(data.token)
+        setUser(data.user || null)
+        localStorage.setItem('auth_token', data.token)
+      } else {
+        throw new Error('No token received from server')
+      }
+
       return data
     } catch (error) {
-      setLoading(false)
+      // Ensure failed signup doesn't leave any auth state
+      setToken(null)
+      setUser(null)
+      localStorage.removeItem('auth_token')
       throw error
+    } finally {
+      setLoading(false)
     }
   }
 
   const logout = async () => {
     try {
-      await fetch('http://localhost:8000/api/logout', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
+      if (token) {
+        await fetch('http://localhost:8000/api/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        })
+      }
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
+      // Always clear auth state regardless of logout API success
       setToken(null)
       setUser(null)
       localStorage.removeItem('auth_token')
@@ -136,7 +218,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, signup, logout, isInitialized }}>
       {children}
     </AuthContext.Provider>
   )
